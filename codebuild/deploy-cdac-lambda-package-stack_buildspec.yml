@@ -1,0 +1,23 @@
+# (c) 2024 Amazon Web Services, Inc. or its affiliates. All Rights Reserved.
+# This AWS Content is provided subject to the terms of the AWS Customer Agreement
+# available at http://aws.amazon.com/agreement or other written agreement between
+# Customer and Amazon Web Services, Inc.
+
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - JAVA_11=$(alternatives --display java | grep 'family java-11-openjdk' | cut -d' ' -f1)
+      - export JAVA_HOME=$(alternatives --display jre_11 | grep 'family' | cut -d' ' -f1)
+      - alternatives --set java $JAVA_11
+      - echo "JAVA_HOME_11=$JAVA_HOME"
+      - echo "JAVA_11=$JAVA_11"
+      - export JAVA_HOME=$JAVA_HOME_11
+      - alternatives --set java $JAVA_11
+      - APPLICATION_PREFIX=`grep lambdaprefix.paramvalue ./$APPLICATION/environments/$ENVIRONMENT/cdk.properties | awk -F= '{print $2}'`
+      - ARTIFACT_S3_BUCKET=`aws ssm get-parameter --name $APPLICATION_PREFIX/reconlambdabucket | jq -r '.Parameter | .Value'`
+      - STACK_PREFIX=`grep cdac.entities.paramvalue ./$APPLICATION/environments/$ENVIRONMENT/cdk.properties | awk -F= '{print $2}'`
+      - cd ./$APPLICATION/lambda
+      - mvn clean package
+      - aws s3 cp ./target/LambdaFunction-1.0-SNAPSHOT.jar s3://$ARTIFACT_S3_BUCKET/$STACK_PREFIX/lambda/LambdaFunction-1.0-SNAPSHOT.jar
